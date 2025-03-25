@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Aplikasi Saya</title>
+    <link rel="icon" type="image/x-icon" href="https://png.pngtree.com/png-vector/20191022/ourmid/pngtree-app-icon-isolated-on-abstract-background-png-image_1848502.jpg">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .add-app-form, .search-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .app-groups {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .group-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: calc(33.33% - 10px);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .group-card:hover {
+            transform: scale(1.05);
+        }
+        .app-list {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .app-item {
+            border-bottom: 1px solid #eee;
+            padding: 10px 0;
+        }
+        .search-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .search-filters input {
+            flex-grow: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Daftar Aplikasi Saya</h1>
+    </div>
+
+    <div class="add-app-form">
+        <h2>Tambah Aplikasi Baru</h2>
+        <form id="addAppForm">
+            <input type="text" id="appName" placeholder="Nama Aplikasi" required>
+            <input type="text" id="appGroup" placeholder="Group Aplikasi" required>
+            <textarea id="appFunction" placeholder="Fungsi Aplikasi" required></textarea>
+            <input type="url" id="appDownloadLink" placeholder="Link Download" required>
+            <button type="submit">Tambah Aplikasi</button>
+        </form>
+    </div>
+
+    <div class="search-section">
+        <h2>Cari Aplikasi</h2>
+        <div class="search-filters">
+            <input type="text" id="searchInput" placeholder="Cari berdasarkan nama atau fungsi">
+            <select id="groupFilter">
+                <option value="">Semua Group</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="app-groups" id="appGroups">
+        <!-- Grup aplikasi akan dimuat di sini -->
+    </div>
+
+    <div class="app-list" id="appList">
+        <h2>Daftar Aplikasi</h2>
+        <!-- Daftar aplikasi akan dimuat di sini -->
+    </div>
+
+    <script>
+        let apps = [];
+
+        // Fungsi untuk memuat data dari localStorage
+        function loadApps() {
+            const storedApps = localStorage.getItem('userApps');
+            if (storedApps) {
+                apps = JSON.parse(storedApps);
+                renderAppGroups();
+                renderAppList();
+                populateGroupFilter();
+            }
+        }
+
+        // Fungsi untuk menyimpan data ke localStorage
+        function saveApps() {
+            localStorage.setItem('userApps', JSON.stringify(apps));
+        }
+
+        // Fungsi untuk menampilkan grup aplikasi
+        function renderAppGroups() {
+            const groups = [...new Set(apps.map(app => app.group))];
+            const groupsContainer = document.getElementById('appGroups');
+            groupsContainer.innerHTML = '';
+            groups.forEach(group => {
+                const groupCard = document.createElement('div');
+                groupCard.classList.add('group-card');
+                groupCard.textContent = group;
+                groupCard.onclick = () => {
+                    document.getElementById('groupFilter').value = group;
+                    searchAndFilterApps();
+                };
+                groupsContainer.appendChild(groupCard);
+            });
+        }
+
+        // Fungsi untuk mengisi dropdown filter group
+        function populateGroupFilter() {
+            const groups = [...new Set(apps.map(app => app.group))];
+            const groupFilter = document.getElementById('groupFilter');
+            groupFilter.innerHTML = '<option value="">Semua Group</option>';
+            groups.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group;
+                option.textContent = group;
+                groupFilter.appendChild(option);
+            });
+        }
+
+        // Fungsi untuk menampilkan daftar aplikasi dengan filtering
+        function renderAppList(filteredApps = null) {
+            const listContainer = document.getElementById('appList');
+            const appsToRender = filteredApps || apps;
+
+            listContainer.innerHTML = '<h2>Daftar Aplikasi</h2>';
+            if (appsToRender.length === 0) {
+                listContainer.innerHTML += '<p>Tidak ada aplikasi ditemukan.</p>';
+                return;
+            }
+            appsToRender.forEach(app => {
+                const appItem = document.createElement('div');
+                appItem.classList.add('app-item');
+                appItem.innerHTML = `
+                    <strong>${app.name}</strong>
+                    <p>Group: ${app.group}</p>
+                    <p>Fungsi: ${app.function}</p>
+                    <a href="${app.downloadLink}" target="_blank">Download</a>
+                `;
+                listContainer.appendChild(appItem);
+            });
+        }
+
+        // Fungsi untuk pencarian dan filtering aplikasi
+        function searchAndFilterApps() {
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const groupFilter = document.getElementById('groupFilter').value;
+
+            const filteredApps = apps.filter(app => {
+                const matchesSearch = 
+                    app.name.toLowerCase().includes(searchQuery) || 
+                    app.function.toLowerCase().includes(searchQuery);
+                
+                const matchesGroup = groupFilter === '' || app.group === groupFilter;
+
+                return matchesSearch && matchesGroup;
+            });
+
+            renderAppList(filteredApps);
+        }
+
+        // Event listener untuk pencarian dan filter
+        document.getElementById('searchInput').addEventListener('input', searchAndFilterApps);
+        document.getElementById('groupFilter').addEventListener('change', searchAndFilterApps);
+
+        // Event listener untuk form tambah aplikasi
+        document.getElementById('addAppForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newApp = {
+                name: document.getElementById('appName').value,
+                group: document.getElementById('appGroup').value,
+                function: document.getElementById('appFunction').value,
+                downloadLink: document.getElementById('appDownloadLink').value
+            };
+            apps.push(newApp);
+            saveApps();
+            renderAppGroups();
+            populateGroupFilter();
+            renderAppList();
+            searchAndFilterApps(); // Refresh view after adding
+            this.reset();
+        });
+
+        // Memuat data saat halaman dimuat
+        loadApps();
+    </script>
+</body>
+</html>
